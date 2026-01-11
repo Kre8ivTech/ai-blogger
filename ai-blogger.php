@@ -1,11 +1,11 @@
 <?php
 /**
- * Plugin Name: Kre8iv AI Marketing Blogger
- * Plugin URI: https://kre8ivdesigns.com
+ * Plugin Name: AI Blogger
+ * Plugin URI: https://www.kre8ivtech.com
  * Description: Automatically generates daily SEO-optimized blog posts about marketing concepts with AI-generated featured images using OpenAI and OpenRouter.
  * Version: 1.3.0
- * Author: Kre8iv Designs
- * Author URI: https://kre8ivdesigns.com
+ * Author: Kre8ivTech, LLC
+ * Author URI: https://www.kre8ivtech.com
  * License: GPL v2 or later
  * Text Domain: kre8iv-ai-blogger
  */
@@ -106,7 +106,7 @@ class Kre8iv_AI_Blogger {
     
     public function add_admin_menu() {
         add_menu_page(
-            'Kre8iv AI Blogger',
+            'AI Blogger',
             'AI Blogger',
             'manage_options',
             'kre8iv-ai-blogger',
@@ -179,6 +179,14 @@ class Kre8iv_AI_Blogger {
             'default' => ''
         ]);
         register_setting('kaib_settings', 'kaib_target_audience', [
+            'default' => ''
+        ]);
+        register_setting('kaib_settings', 'kaib_custom_system_prompt', [
+            'sanitize_callback' => 'sanitize_textarea_field',
+            'default' => ''
+        ]);
+        register_setting('kaib_settings', 'kaib_custom_prompt', [
+            'sanitize_callback' => 'sanitize_textarea_field',
             'default' => ''
         ]);
         register_setting('kaib_settings', 'kaib_enable_auto_post', [
@@ -973,6 +981,31 @@ Topics already covered (avoid these): {$topics_list}
 Respond with ONLY the topic name, formatted as a compelling blog post topic. Example: 'How to Build a Content Calendar That Actually Works'";
     }
     
+    /**
+     * Replace placeholders in custom prompts with actual values
+     * 
+     * @param string $prompt The prompt template with placeholders
+     * @param string $topic The blog post topic
+     * @param string $context The business context string
+     * @param int $word_count Target word count
+     * @param string $business_name Business name
+     * @param string $business_desc Business description
+     * @param string $target_audience Target audience
+     * @return string Prompt with placeholders replaced
+     */
+    private function replace_prompt_placeholders($prompt, $topic, $context, $word_count, $business_name, $business_desc, $target_audience) {
+        $replacements = [
+            '{topic}' => $topic,
+            '{context}' => $context,
+            '{word_count}' => $word_count,
+            '{business_name}' => $business_name,
+            '{business_description}' => $business_desc,
+            '{target_audience}' => $target_audience,
+        ];
+        
+        return str_replace(array_keys($replacements), array_values($replacements), $prompt);
+    }
+    
     private function generate_article_content($topic) {
         $word_count = get_option('kaib_word_count', 1500);
         $business_name = get_option('kaib_business_name', '');
@@ -990,7 +1023,33 @@ Respond with ONLY the topic name, formatted as a compelling blog post topic. Exa
             $context .= "Target readers: {$target_audience}. ";
         }
         
-        $prompt = "Write a comprehensive, SEO-optimized blog post about: {$topic}
+        // Get custom prompts or use defaults
+        $custom_system_prompt = get_option('kaib_custom_system_prompt', '');
+        $custom_prompt = get_option('kaib_custom_prompt', '');
+        
+        // Default system prompt
+        $default_system_prompt = 'You are a 35-year-old senior marketing specialist with 12+ years of hands-on experience across digital marketing, brand strategy, and growth. You\'ve worked with startups and Fortune 500 companies alike. Your writing style is:
+
+- Conversational yet authoritative - you speak from experience, not theory
+- Trend-aware - you reference current tools like ChatGPT, TikTok trends, AI marketing tools, and platform algorithm changes
+- Practical - every piece of advice comes with "here\'s exactly how to do it" steps
+- Data-driven - you cite real statistics and case studies
+- Relatable - you share lessons learned from failures, not just successes
+- Forward-thinking - you anticipate where marketing is headed
+
+You stay current on:
+- Social media algorithm changes (Instagram, TikTok, LinkedIn, X/Twitter)
+- AI and automation tools for marketing
+- Privacy changes (cookie deprecation, iOS updates)
+- Gen Z and millennial consumer behavior
+- Emerging platforms and technologies
+- SEO updates and Google algorithm changes
+- Content formats that are trending (short-form video, podcasts, newsletters)
+
+Write like you\'re sharing insider knowledge with a colleague over coffee - confident, helpful, and genuinely invested in their success. Always respond with valid JSON.';
+        
+        // Default user prompt
+        $default_prompt = "Write a comprehensive, SEO-optimized blog post about: {$topic}
 
 {$context}
 
@@ -1013,35 +1072,25 @@ Format the response as JSON with this structure:
     \"title\": \"The SEO-optimized blog title\",
     \"body\": \"The full HTML-formatted article content with proper heading tags\"
 }";
+        
+        // Use custom prompts if provided, otherwise use defaults
+        $system_prompt = !empty($custom_system_prompt) ? $custom_system_prompt : $default_system_prompt;
+        $user_prompt = !empty($custom_prompt) ? $custom_prompt : $default_prompt;
+        
+        // Replace placeholders in prompts
+        $system_prompt = $this->replace_prompt_placeholders($system_prompt, $topic, $context, $word_count, $business_name, $business_desc, $target_audience);
+        $user_prompt = $this->replace_prompt_placeholders($user_prompt, $topic, $context, $word_count, $business_name, $business_desc, $target_audience);
 
         $response = $this->call_openai_chat([
             'model' => get_option('kaib_gpt_model', 'gpt-4o'),
             'messages' => [
                 [
                     'role' => 'system',
-                    'content' => 'You are a 35-year-old senior marketing specialist with 12+ years of hands-on experience across digital marketing, brand strategy, and growth. You\'ve worked with startups and Fortune 500 companies alike. Your writing style is:
-
-- Conversational yet authoritative - you speak from experience, not theory
-- Trend-aware - you reference current tools like ChatGPT, TikTok trends, AI marketing tools, and platform algorithm changes
-- Practical - every piece of advice comes with "here\'s exactly how to do it" steps
-- Data-driven - you cite real statistics and case studies
-- Relatable - you share lessons learned from failures, not just successes
-- Forward-thinking - you anticipate where marketing is headed
-
-You stay current on:
-- Social media algorithm changes (Instagram, TikTok, LinkedIn, X/Twitter)
-- AI and automation tools for marketing
-- Privacy changes (cookie deprecation, iOS updates)
-- Gen Z and millennial consumer behavior
-- Emerging platforms and technologies
-- SEO updates and Google algorithm changes
-- Content formats that are trending (short-form video, podcasts, newsletters)
-
-Write like you\'re sharing insider knowledge with a colleague over coffee - confident, helpful, and genuinely invested in their success. Always respond with valid JSON.'
+                    'content' => $system_prompt
                 ],
                 [
                     'role' => 'user',
-                    'content' => $prompt
+                    'content' => $user_prompt
                 ]
             ],
             'max_tokens' => 4000,
@@ -1282,7 +1331,7 @@ Style: High-quality AI-generated professional illustration or visual art that av
                 'Authorization' => 'Bearer ' . $this->openrouter_api_key,
                 'Content-Type' => 'application/json',
                 'HTTP-Referer' => home_url(),
-                'X-Title' => 'Kre8iv AI Blogger'
+                'X-Title' => 'AI Blogger'
             ],
             'body' => json_encode($data)
         ]);
@@ -1330,7 +1379,7 @@ Style: High-quality AI-generated professional illustration or visual art that av
         update_option('kaib_log', $log);
         
         if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('[Kre8iv AI Blogger] ' . $message);
+            error_log('[AI Blogger] ' . $message);
         }
     }
     

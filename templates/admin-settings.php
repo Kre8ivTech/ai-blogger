@@ -104,7 +104,7 @@ if (!defined('ABSPATH')) exit;
                                    id="kaib_business_name" 
                                    value="<?php echo esc_attr(get_option('kaib_business_name', '')); ?>" 
                                    class="regular-text"
-                                   placeholder="e.g., Kre8iv Designs">
+                                   placeholder="e.g., Your Company Name">
                         </td>
                     </tr>
                     <tr>
@@ -225,6 +225,112 @@ if (!defined('ABSPATH')) exit;
                                    step="100"
                                    class="small-text">
                             <p class="description">Recommended: 1200-1800 words for SEO</p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- AI Prompt Settings -->
+            <div class="kaib-settings-section">
+                <h2>
+                    <span class="dashicons dashicons-edit"></span>
+                    AI Prompt Settings
+                </h2>
+                <p class="kaib-section-description">Customize the AI prompts used for generating blog posts. Leave empty to use default prompts.</p>
+                
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="kaib_custom_system_prompt">Custom System Prompt</label>
+                        </th>
+                        <td>
+                            <textarea name="kaib_custom_system_prompt" 
+                                      id="kaib_custom_system_prompt" 
+                                      rows="8" 
+                                      class="large-text code"
+                                      placeholder="Leave empty to use default system prompt..."><?php echo esc_textarea(get_option('kaib_custom_system_prompt', '')); ?></textarea>
+                            <p class="description">
+                                <strong>System Prompt:</strong> Defines the AI's persona, writing style, and expertise. This sets the overall tone and approach for all generated content.
+                            </p>
+                            <p class="description">
+                                <strong>Available Placeholders:</strong> None (system prompt doesn't use placeholders)
+                            </p>
+                            <details class="kaib-prompt-help">
+                                <summary>View Default System Prompt</summary>
+                                <pre class="kaib-code-block">You are a 35-year-old senior marketing specialist with 12+ years of hands-on experience across digital marketing, brand strategy, and growth. You've worked with startups and Fortune 500 companies alike. Your writing style is:
+
+- Conversational yet authoritative - you speak from experience, not theory
+- Trend-aware - you reference current tools like ChatGPT, TikTok trends, AI marketing tools, and platform algorithm changes
+- Practical - every piece of advice comes with "here's exactly how to do it" steps
+- Data-driven - you cite real statistics and case studies
+- Relatable - you share lessons learned from failures, not just successes
+- Forward-thinking - you anticipate where marketing is headed
+
+You stay current on:
+- Social media algorithm changes (Instagram, TikTok, LinkedIn, X/Twitter)
+- AI and automation tools for marketing
+- Privacy changes (cookie deprecation, iOS updates)
+- Gen Z and millennial consumer behavior
+- Emerging platforms and technologies
+- SEO updates and Google algorithm changes
+- Content formats that are trending (short-form video, podcasts, newsletters)
+
+Write like you're sharing insider knowledge with a colleague over coffee - confident, helpful, and genuinely invested in their success. Always respond with valid JSON.</pre>
+                            </details>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="kaib_custom_prompt">Custom User Prompt</label>
+                        </th>
+                        <td>
+                            <textarea name="kaib_custom_prompt" 
+                                      id="kaib_custom_prompt" 
+                                      rows="12" 
+                                      class="large-text code"
+                                      placeholder="Leave empty to use default user prompt..."><?php echo esc_textarea(get_option('kaib_custom_prompt', '')); ?></textarea>
+                            <p class="description">
+                                <strong>User Prompt:</strong> The main instruction prompt that tells the AI what to write about and how to structure the content.
+                            </p>
+                            <p class="description">
+                                <strong>Available Placeholders:</strong>
+                                <code>{topic}</code> - The blog post topic
+                                <code>{context}</code> - Business context (name, description, audience)
+                                <code>{word_count}</code> - Target word count
+                                <code>{business_name}</code> - Business name
+                                <code>{business_description}</code> - Business description
+                                <code>{target_audience}</code> - Target audience
+                            </p>
+                            <details class="kaib-prompt-help">
+                                <summary>View Default User Prompt</summary>
+                                <pre class="kaib-code-block">Write a comprehensive, SEO-optimized blog post about: {topic}
+
+{context}
+
+Requirements:
+1. Create an engaging, SEO-friendly title (H1)
+2. Write approximately {word_count} words
+3. Use proper heading hierarchy (H2, H3) for sections
+4. Include an engaging introduction with a hook
+5. Add practical, actionable tips and examples
+6. Include relevant statistics or data points where appropriate
+7. Write a compelling conclusion with a call-to-action
+8. Use short paragraphs for readability
+9. Include transition sentences between sections
+10. Reference current marketing trends and tools (2024-2025)
+11. Include real-world examples from successful brands
+12. Address common misconceptions or challenges
+
+Format the response as JSON with this structure:
+{
+    "title": "The SEO-optimized blog title",
+    "body": "The full HTML-formatted article content with proper heading tags"
+}</pre>
+                            </details>
+                            <p class="kaib-note" style="margin-top: 10px;">
+                                <span class="dashicons dashicons-info"></span>
+                                <strong>Important:</strong> Your custom prompt must instruct the AI to return JSON with "title" and "body" fields, or post generation will fail.
+                            </p>
                         </td>
                     </tr>
                 </table>

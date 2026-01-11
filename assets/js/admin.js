@@ -1,5 +1,6 @@
 /**
- * Kre8iv AI Blogger - Admin JavaScript
+ * AI Blogger - Admin JavaScript
+ * Created by Kre8ivTech, LLC
  */
 
 (function($) {

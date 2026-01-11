@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) exit;
     <div class="kaib-header">
         <h1>
             <span class="dashicons dashicons-edit-page"></span>
-            Kre8iv AI Marketing Blogger
+            AI Blogger
         </h1>
         <p class="kaib-tagline">Automated SEO-optimized marketing content powered by AI</p>
     </div>
