@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Kre8iv AI Marketing Blogger
  * Plugin URI: https://kre8ivdesigns.com
- * Description: Automatically generates daily SEO-optimized blog posts about marketing concepts with AI-generated featured images using OpenAI.
- * Version: 1.2.0
+ * Description: Automatically generates daily SEO-optimized blog posts about marketing concepts with AI-generated featured images using OpenAI and OpenRouter.
+ * Version: 1.3.0
  * Author: Kre8iv Designs
  * Author URI: https://kre8ivdesigns.com
  * License: GPL v2 or later
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('KAIB_VERSION', '1.2.0');
+define('KAIB_VERSION', '1.3.0');
 define('KAIB_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KAIB_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -43,6 +43,9 @@ class Kre8iv_AI_Blogger {
         add_action('kaib_daily_post_event', [$this, 'generate_daily_post']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_styles']);
         
+        // Add meta box for social media posting on post edit page
+        add_action('add_meta_boxes', [$this, 'add_social_media_meta_box']);
+        
         // AJAX handlers
         add_action('wp_ajax_kaib_generate_now', [$this, 'ajax_generate_now']);
         add_action('wp_ajax_kaib_test_connection', [$this, 'ajax_test_connection']);
@@ -50,6 +53,11 @@ class Kre8iv_AI_Blogger {
         add_action('wp_ajax_kaib_clear_log', [$this, 'ajax_clear_log']);
         add_action('wp_ajax_kaib_generate_backfill', [$this, 'ajax_generate_backfill']);
         add_action('wp_ajax_kaib_generate_single_backdate', [$this, 'ajax_generate_single_backdate']);
+        add_action('wp_ajax_kaib_post_to_facebook', [$this, 'ajax_post_to_facebook']);
+        add_action('wp_ajax_kaib_post_to_linkedin', [$this, 'ajax_post_to_linkedin']);
+        
+        // Auto-posting hooks
+        add_action('transition_post_status', [$this, 'handle_post_publish'], 10, 3);
         
         // Activation/Deactivation hooks
         register_activation_hook(__FILE__, [$this, 'activate']);
@@ -176,32 +184,60 @@ class Kre8iv_AI_Blogger {
         register_setting('kaib_settings', 'kaib_enable_auto_post', [
             'default' => 0
         ]);
+        
+        // Social Media Settings
+        register_setting('kaib_settings', 'kaib_facebook_page_id', [
+            'sanitize_callback' => 'sanitize_text_field'
+        ]);
+        register_setting('kaib_settings', 'kaib_facebook_access_token', [
+            'sanitize_callback' => 'sanitize_text_field'
+        ]);
+        register_setting('kaib_settings', 'kaib_facebook_auto_post', [
+            'default' => 0
+        ]);
+        register_setting('kaib_settings', 'kaib_linkedin_org_id', [
+            'sanitize_callback' => 'sanitize_text_field'
+        ]);
+        register_setting('kaib_settings', 'kaib_linkedin_access_token', [
+            'sanitize_callback' => 'sanitize_text_field'
+        ]);
+        register_setting('kaib_settings', 'kaib_linkedin_auto_post', [
+            'default' => 0
+        ]);
     }
     
     public function enqueue_admin_styles($hook) {
-        if (strpos($hook, 'kre8iv-ai-blogger') === false) {
-            return;
+        // Load on plugin admin pages
+        if (strpos($hook, 'kre8iv-ai-blogger') !== false) {
+            wp_enqueue_style(
+                'kaib-admin-styles',
+                KAIB_PLUGIN_URL . 'assets/css/admin.css',
+                [],
+                KAIB_VERSION
+            );
+            
+            wp_enqueue_script(
+                'kaib-admin-script',
+                KAIB_PLUGIN_URL . 'assets/js/admin.js',
+                ['jquery'],
+                KAIB_VERSION,
+                true
+            );
+            
+            wp_localize_script('kaib-admin-script', 'kaib_ajax', [
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('kaib_nonce')
+            ]);
         }
         
-        wp_enqueue_style(
-            'kaib-admin-styles',
-            KAIB_PLUGIN_URL . 'assets/css/admin.css',
-            [],
-            KAIB_VERSION
-        );
-        
-        wp_enqueue_script(
-            'kaib-admin-script',
-            KAIB_PLUGIN_URL . 'assets/js/admin.js',
-            ['jquery'],
-            KAIB_VERSION,
-            true
-        );
-        
-        wp_localize_script('kaib-admin-script', 'kaib_ajax', [
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('kaib_nonce')
-        ]);
+        // Also load on post edit pages for social media meta box
+        if ($hook === 'post.php' || $hook === 'post-new.php') {
+            wp_enqueue_script('jquery');
+            wp_localize_script('jquery', 'kaib_ajax', [
+                'ajax_url' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('kaib_nonce')
+            ]);
+        }
     }
     
     public function render_admin_page() {
@@ -219,6 +255,220 @@ class Kre8iv_AI_Blogger {
     public function render_history_page() {
         $generated_posts = $this->get_generated_posts();
         include KAIB_PLUGIN_DIR . 'templates/admin-history.php';
+    }
+    
+    public function add_social_media_meta_box() {
+        add_meta_box(
+            'kaib_social_media',
+            'Social Media Posting',
+            [$this, 'render_social_media_meta_box'],
+            'post',
+            'side',
+            'high'
+        );
+    }
+    
+    public function render_social_media_meta_box($post) {
+        $fb_post_id = get_post_meta($post->ID, '_kaib_facebook_post_id', true);
+        $li_post_id = get_post_meta($post->ID, '_kaib_linkedin_post_id', true);
+        $is_generated = get_post_meta($post->ID, '_kaib_generated', true) === '1';
+        
+        $fb_page_id = get_option('kaib_facebook_page_id', '');
+        $fb_token = get_option('kaib_facebook_access_token', '');
+        $fb_configured = !empty($fb_page_id) && !empty($fb_token);
+        
+        $li_org_id = get_option('kaib_linkedin_org_id', '');
+        $li_token = get_option('kaib_linkedin_access_token', '');
+        $li_configured = !empty($li_org_id) && !empty($li_token);
+        
+        ?>
+        <div class="kaib-social-meta-box">
+            <?php if ($post->post_status !== 'publish'): ?>
+                <p style="color: #d63638; margin: 0 0 15px 0;">
+                    <span class="dashicons dashicons-info"></span>
+                    <strong>Publish this post first</strong> to enable social media posting.
+                </p>
+            <?php else: ?>
+                
+                <!-- Facebook Section -->
+                <div class="kaib-social-platform" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #ddd;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <strong style="display: flex; align-items: center; gap: 8px;">
+                            <span class="dashicons dashicons-facebook-alt" style="color: #1877f2;"></span>
+                            Facebook
+                        </strong>
+                        <?php if ($fb_post_id): ?>
+                            <span style="color: #46b450; font-size: 12px;">
+                                <span class="dashicons dashicons-yes-alt"></span> Posted
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <?php if (!$fb_configured): ?>
+                        <p style="color: #d63638; font-size: 12px; margin: 5px 0;">
+                            <span class="dashicons dashicons-warning"></span>
+                            Facebook not configured. <a href="<?php echo admin_url('admin.php?page=kre8iv-ai-blogger-settings'); ?>">Configure in Settings</a>
+                        </p>
+                    <?php else: ?>
+                        <button type="button" 
+                                class="button button-secondary kaib-post-facebook-edit" 
+                                data-post-id="<?php echo $post->ID; ?>"
+                                <?php echo $fb_post_id ? 'disabled' : ''; ?>>
+                            <?php if ($fb_post_id): ?>
+                                <span class="dashicons dashicons-yes-alt"></span> Already Posted
+                            <?php else: ?>
+                                <span class="dashicons dashicons-share"></span> Post to Facebook
+                            <?php endif; ?>
+                        </button>
+                        <?php if ($fb_post_id): ?>
+                            <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">
+                                Post ID: <?php echo esc_html($fb_post_id); ?>
+                            </p>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+                
+                <!-- LinkedIn Section -->
+                <div class="kaib-social-platform">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                        <strong style="display: flex; align-items: center; gap: 8px;">
+                            <span class="dashicons dashicons-linkedin" style="color: #0077b5;"></span>
+                            LinkedIn
+                        </strong>
+                        <?php if ($li_post_id): ?>
+                            <span style="color: #46b450; font-size: 12px;">
+                                <span class="dashicons dashicons-yes-alt"></span> Posted
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <?php if (!$li_configured): ?>
+                        <p style="color: #d63638; font-size: 12px; margin: 5px 0;">
+                            <span class="dashicons dashicons-warning"></span>
+                            LinkedIn not configured. <a href="<?php echo admin_url('admin.php?page=kre8iv-ai-blogger-settings'); ?>">Configure in Settings</a>
+                        </p>
+                    <?php else: ?>
+                        <button type="button" 
+                                class="button button-secondary kaib-post-linkedin-edit" 
+                                data-post-id="<?php echo $post->ID; ?>"
+                                <?php echo $li_post_id ? 'disabled' : ''; ?>>
+                            <?php if ($li_post_id): ?>
+                                <span class="dashicons dashicons-yes-alt"></span> Already Posted
+                            <?php else: ?>
+                                <span class="dashicons dashicons-share"></span> Post to LinkedIn
+                            <?php endif; ?>
+                        </button>
+                        <?php if ($li_post_id): ?>
+                            <p style="font-size: 11px; color: #666; margin: 5px 0 0 0;">
+                                Post ID: <?php echo esc_html($li_post_id); ?>
+                            </p>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+                
+            <?php endif; ?>
+        </div>
+        
+        <style>
+        .kaib-social-meta-box {
+            padding: 5px 0;
+        }
+        .kaib-social-platform {
+            margin-bottom: 15px;
+        }
+        .kaib-post-facebook-edit,
+        .kaib-post-linkedin-edit {
+            width: 100%;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .kaib-post-facebook-edit:disabled,
+        .kaib-post-linkedin-edit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        </style>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            // Post to Facebook from edit page
+            $('.kaib-post-facebook-edit').on('click', function() {
+                var $btn = $(this);
+                var postId = $btn.data('post-id');
+                
+                if ($btn.prop('disabled')) {
+                    return;
+                }
+                
+                if (!confirm('Post this to your Facebook Business Page?')) {
+                    return;
+                }
+                
+                $btn.prop('disabled', true).html('<span class="spinner is-active" style="float: none; margin: 0;"></span> Posting...');
+                
+                $.post(ajaxurl, {
+                    action: 'kaib_post_to_facebook',
+                    post_id: postId,
+                    nonce: kaib_ajax.nonce
+                }, function(response) {
+                    if (response.success) {
+                        $btn.html('<span class="dashicons dashicons-yes-alt"></span> Posted to Facebook')
+                            .removeClass('button-secondary')
+                            .addClass('button-primary')
+                            .prop('disabled', true);
+                        
+                        // Reload page to show post ID
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        $btn.prop('disabled', false).html('<span class="dashicons dashicons-share"></span> Post to Facebook');
+                        alert('Error: ' + (response.data || 'Failed to post to Facebook'));
+                    }
+                });
+            });
+            
+            // Post to LinkedIn from edit page
+            $('.kaib-post-linkedin-edit').on('click', function() {
+                var $btn = $(this);
+                var postId = $btn.data('post-id');
+                
+                if ($btn.prop('disabled')) {
+                    return;
+                }
+                
+                if (!confirm('Post this to your LinkedIn Business Page?')) {
+                    return;
+                }
+                
+                $btn.prop('disabled', true).html('<span class="spinner is-active" style="float: none; margin: 0;"></span> Posting...');
+                
+                $.post(ajaxurl, {
+                    action: 'kaib_post_to_linkedin',
+                    post_id: postId,
+                    nonce: kaib_ajax.nonce
+                }, function(response) {
+                    if (response.success) {
+                        $btn.html('<span class="dashicons dashicons-yes-alt"></span> Posted to LinkedIn')
+                            .removeClass('button-secondary')
+                            .addClass('button-primary')
+                            .prop('disabled', true);
+                        
+                        // Reload page to show post ID
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        $btn.prop('disabled', false).html('<span class="dashicons dashicons-share"></span> Post to LinkedIn');
+                        alert('Error: ' + (response.data || 'Failed to post to LinkedIn'));
+                    }
+                });
+            });
+        });
+        </script>
+        <?php
     }
     
     private function get_generated_posts($limit = 50) {
@@ -369,7 +619,210 @@ class Kre8iv_AI_Blogger {
         $date_msg = $backdate ? " (backdated to {$post_date})" : "";
         $this->log("Successfully created post ID: {$post_id}{$date_msg}");
         
+        // Auto-post to social media if enabled and post is published
+        if (get_option('kaib_post_status', 'draft') === 'publish') {
+            $this->auto_post_to_social_media($post_id);
+        }
+        
         return $post_id;
+    }
+    
+    public function handle_post_publish($new_status, $old_status, $post) {
+        // Only auto-post when transitioning to publish status
+        if ($new_status === 'publish' && $old_status !== 'publish') {
+            // Check if this is a generated post
+            if (get_post_meta($post->ID, '_kaib_generated', true) === '1') {
+                $this->auto_post_to_social_media($post->ID);
+            }
+        }
+    }
+    
+    private function auto_post_to_social_media($post_id) {
+        $post = get_post($post_id);
+        if (!$post) {
+            return;
+        }
+        
+        // Auto-post to Facebook if enabled
+        if (get_option('kaib_facebook_auto_post', 0)) {
+            $this->post_to_facebook($post_id, true);
+        }
+        
+        // Auto-post to LinkedIn if enabled
+        if (get_option('kaib_linkedin_auto_post', 0)) {
+            $this->post_to_linkedin($post_id, true);
+        }
+    }
+    
+    private function post_to_facebook($post_id, $is_auto = false) {
+        $page_id = get_option('kaib_facebook_page_id', '');
+        $access_token = get_option('kaib_facebook_access_token', '');
+        
+        if (empty($page_id) || empty($access_token)) {
+            if (!$is_auto) {
+                $this->log('Facebook: Page ID or Access Token not configured');
+            }
+            return false;
+        }
+        
+        $post = get_post($post_id);
+        if (!$post) {
+            return false;
+        }
+        
+        $post_url = get_permalink($post_id);
+        $post_title = get_the_title($post_id);
+        $post_excerpt = get_the_excerpt($post_id);
+        
+        // Get featured image
+        $image_url = '';
+        $thumbnail_id = get_post_thumbnail_id($post_id);
+        if ($thumbnail_id) {
+            $image_url = wp_get_attachment_image_url($thumbnail_id, 'large');
+        }
+        
+        // Create message (Facebook allows up to 5000 characters, but we'll keep it concise)
+        $message = $post_title . "\n\n" . wp_trim_words(strip_tags($post_excerpt), 30) . "\n\n" . $post_url;
+        
+        // Prepare post data
+        $post_data = [
+            'message' => $message,
+            'link' => $post_url
+        ];
+        
+        // Add image if available
+        if ($image_url) {
+            $post_data['picture'] = $image_url;
+        }
+        
+        // Post to Facebook Graph API
+        $url = "https://graph.facebook.com/v18.0/{$page_id}/feed";
+        $response = wp_remote_post($url, [
+            'timeout' => 30,
+            'body' => array_merge($post_data, ['access_token' => $access_token])
+        ]);
+        
+        if (is_wp_error($response)) {
+            $this->log('Facebook: API Error - ' . $response->get_error_message());
+            return false;
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $decoded = json_decode($body, true);
+        
+        if (isset($decoded['error'])) {
+            $this->log('Facebook: Error - ' . $decoded['error']['message']);
+            return false;
+        }
+        
+        if (isset($decoded['id'])) {
+            // Store the Facebook post ID
+            update_post_meta($post_id, '_kaib_facebook_post_id', $decoded['id']);
+            $this->log("Facebook: Successfully posted to page. Post ID: {$decoded['id']}");
+            return $decoded['id'];
+        }
+        
+        $this->log('Facebook: Unexpected response format');
+        return false;
+    }
+    
+    private function post_to_linkedin($post_id, $is_auto = false) {
+        $org_id = get_option('kaib_linkedin_org_id', '');
+        $access_token = get_option('kaib_linkedin_access_token', '');
+        
+        if (empty($org_id) || empty($access_token)) {
+            if (!$is_auto) {
+                $this->log('LinkedIn: Organization ID or Access Token not configured');
+            }
+            return false;
+        }
+        
+        $post = get_post($post_id);
+        if (!$post) {
+            return false;
+        }
+        
+        $post_url = get_permalink($post_id);
+        $post_title = get_the_title($post_id);
+        $post_excerpt = get_the_excerpt($post_id);
+        
+        // Get featured image
+        $image_url = '';
+        $thumbnail_id = get_post_thumbnail_id($post_id);
+        if ($thumbnail_id) {
+            $image_url = wp_get_attachment_image_url($thumbnail_id, 'large');
+        }
+        
+        // LinkedIn API requires specific format (v2 API)
+        $share_content = [
+            'shareCommentary' => [
+                'text' => $post_title . "\n\n" . wp_trim_words(strip_tags($post_excerpt), 50) . "\n\n" . $post_url
+            ],
+            'shareMediaCategory' => 'ARTICLE'
+        ];
+        
+        // Add media if image is available
+        if ($image_url) {
+            $share_content['media'] = [
+                [
+                    'status' => 'READY',
+                    'description' => [
+                        'text' => wp_trim_words(strip_tags($post_excerpt), 30)
+                    ],
+                    'media' => $image_url,
+                    'originalUrl' => $post_url,
+                    'title' => [
+                        'text' => $post_title
+                    ]
+                ]
+            ];
+        }
+        
+        $content = [
+            'author' => "urn:li:organization:{$org_id}",
+            'lifecycleState' => 'PUBLISHED',
+            'specificContent' => [
+                'com.linkedin.ugc.ShareContent' => $share_content
+            ],
+            'visibility' => [
+                'com.linkedin.ugc.MemberNetworkVisibility' => 'PUBLIC'
+            ]
+        ];
+        
+        // Post to LinkedIn API
+        $url = "https://api.linkedin.com/v2/shares";
+        $response = wp_remote_post($url, [
+            'timeout' => 30,
+            'headers' => [
+                'Authorization' => 'Bearer ' . $access_token,
+                'Content-Type' => 'application/json',
+                'X-Restli-Protocol-Version' => '2.0.0'
+            ],
+            'body' => json_encode($content)
+        ]);
+        
+        if (is_wp_error($response)) {
+            $this->log('LinkedIn: API Error - ' . $response->get_error_message());
+            return false;
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $decoded = json_decode($body, true);
+        
+        if (isset($decoded['serviceErrorCode'])) {
+            $this->log('LinkedIn: Error - ' . ($decoded['message'] ?? 'Unknown error'));
+            return false;
+        }
+        
+        if (isset($decoded['id'])) {
+            // Store the LinkedIn post ID
+            update_post_meta($post_id, '_kaib_linkedin_post_id', $decoded['id']);
+            $this->log("LinkedIn: Successfully posted to organization. Post ID: {$decoded['id']}");
+            return $decoded['id'];
+        }
+        
+        $this->log('LinkedIn: Unexpected response format');
+        return false;
     }
     
     public function generate_backfill_posts($num_posts, $start_date = null) {
@@ -1040,6 +1493,64 @@ Style: High-quality AI-generated professional illustration or visual art that av
             $error_msg = $last_error['message'] ?? 'Failed to generate post - check activity log';
             $this->log('Backdated post generation failed: ' . $error_msg);
             wp_send_json_error($error_msg);
+        }
+    }
+    
+    public function ajax_post_to_facebook() {
+        check_ajax_referer('kaib_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+            return;
+        }
+        
+        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+        
+        if (!$post_id) {
+            wp_send_json_error('No post ID provided');
+            return;
+        }
+        
+        $result = $this->post_to_facebook($post_id, false);
+        
+        if ($result) {
+            wp_send_json_success([
+                'message' => 'Successfully posted to Facebook',
+                'post_id' => $result
+            ]);
+        } else {
+            $log = get_option('kaib_log', []);
+            $last_error = end($log);
+            wp_send_json_error($last_error['message'] ?? 'Failed to post to Facebook');
+        }
+    }
+    
+    public function ajax_post_to_linkedin() {
+        check_ajax_referer('kaib_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Unauthorized');
+            return;
+        }
+        
+        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+        
+        if (!$post_id) {
+            wp_send_json_error('No post ID provided');
+            return;
+        }
+        
+        $result = $this->post_to_linkedin($post_id, false);
+        
+        if ($result) {
+            wp_send_json_success([
+                'message' => 'Successfully posted to LinkedIn',
+                'post_id' => $result
+            ]);
+        } else {
+            $log = get_option('kaib_log', []);
+            $last_error = end($log);
+            wp_send_json_error($last_error['message'] ?? 'Failed to post to LinkedIn');
         }
     }
 }

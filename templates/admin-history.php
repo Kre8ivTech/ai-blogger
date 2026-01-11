@@ -94,12 +94,26 @@ if (!defined('ABSPATH')) exit;
                     ?>
                 </td>
                 <td class="column-actions">
-                    <a href="<?php echo get_edit_post_link($post->ID); ?>" class="button button-small">
+                    <a href="<?php echo get_edit_post_link($post->ID); ?>" class="button button-small" title="Edit">
                         <span class="dashicons dashicons-edit"></span>
                     </a>
-                    <a href="<?php echo get_permalink($post->ID); ?>" class="button button-small" target="_blank">
+                    <a href="<?php echo get_permalink($post->ID); ?>" class="button button-small" target="_blank" title="View">
                         <span class="dashicons dashicons-visibility"></span>
                     </a>
+                    <?php if ($post->post_status === 'publish'): ?>
+                        <button type="button" 
+                                class="button button-small kaib-post-facebook" 
+                                data-post-id="<?php echo $post->ID; ?>"
+                                title="Post to Facebook">
+                            <span class="dashicons dashicons-facebook-alt"></span>
+                        </button>
+                        <button type="button" 
+                                class="button button-small kaib-post-linkedin" 
+                                data-post-id="<?php echo $post->ID; ?>"
+                                title="Post to LinkedIn">
+                            <span class="dashicons dashicons-linkedin"></span>
+                        </button>
+                    <?php endif; ?>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -135,3 +149,65 @@ if (!defined('ABSPATH')) exit;
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+jQuery(document).ready(function($) {
+    // Post to Facebook
+    $('.kaib-post-facebook').on('click', function() {
+        var $btn = $(this);
+        var postId = $btn.data('post-id');
+        
+        if (!confirm('Post this to your Facebook Business Page?')) {
+            return;
+        }
+        
+        $btn.prop('disabled', true).html('<span class="spinner is-active"></span>');
+        
+        $.post(ajaxurl, {
+            action: 'kaib_post_to_facebook',
+            post_id: postId,
+            nonce: kaib_ajax.nonce
+        }, function(response) {
+            if (response.success) {
+                $btn.html('<span class="dashicons dashicons-yes-alt"></span>')
+                    .removeClass('button-small')
+                    .addClass('button-primary')
+                    .prop('disabled', true);
+                alert('Successfully posted to Facebook!');
+            } else {
+                $btn.prop('disabled', false).html('<span class="dashicons dashicons-facebook-alt"></span>');
+                alert('Error: ' + (response.data || 'Failed to post to Facebook'));
+            }
+        });
+    });
+    
+    // Post to LinkedIn
+    $('.kaib-post-linkedin').on('click', function() {
+        var $btn = $(this);
+        var postId = $btn.data('post-id');
+        
+        if (!confirm('Post this to your LinkedIn Business Page?')) {
+            return;
+        }
+        
+        $btn.prop('disabled', true).html('<span class="spinner is-active"></span>');
+        
+        $.post(ajaxurl, {
+            action: 'kaib_post_to_linkedin',
+            post_id: postId,
+            nonce: kaib_ajax.nonce
+        }, function(response) {
+            if (response.success) {
+                $btn.html('<span class="dashicons dashicons-yes-alt"></span>')
+                    .removeClass('button-small')
+                    .addClass('button-primary')
+                    .prop('disabled', true);
+                alert('Successfully posted to LinkedIn!');
+            } else {
+                $btn.prop('disabled', false).html('<span class="dashicons dashicons-linkedin"></span>');
+                alert('Error: ' + (response.data || 'Failed to post to LinkedIn'));
+            }
+        });
+    });
+});
+</script>
