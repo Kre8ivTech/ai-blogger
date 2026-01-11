@@ -665,18 +665,24 @@ Generate JSON with:
         $style = get_option('kaib_image_style', 'vivid');
         $model = get_option('kaib_image_model', 'dall-e-3');
         
-        $full_prompt = "Create a professional, modern featured image for a marketing blog post about: {$image_prompt}
+        $full_prompt = "Create a professional photographer-quality featured image for a marketing blog post about: {$image_prompt}
 
 CRITICAL REQUIREMENTS:
 - ABSOLUTELY NO TEXT, WORDS, LETTERS, NUMBERS, OR TYPOGRAPHY OF ANY KIND IN THE IMAGE
 - NO logos, watermarks, labels, captions, titles, or any written content
-- Pure visual imagery only - abstract shapes, icons, illustrations, or photographs
-- Clean, professional aesthetic suitable for a business blog
-- Modern, visually engaging composition
-- Corporate-appropriate color palette
-- High-quality, polished look
+- NO stock photo aesthetics - avoid generic, overly posed, staged, or clichéd imagery
+- Professional editorial/documentary photography style - authentic, candid, and natural
+- Shot with professional camera equipment - sharp focus, proper depth of field, high resolution
+- Natural lighting with professional color grading - avoid harsh studio lighting or artificial setups
+- Editorial composition - rule of thirds, leading lines, natural framing, not centered corporate stock style
+- Real-world environments and authentic moments - avoid sterile office backgrounds or fake scenarios
+- Professional photographer's eye - thoughtful composition, interesting angles, visual storytelling
+- Avoid: overly perfect people, fake smiles, staged handshakes, generic business settings, stock photo clichés
+- Instead: authentic moments, natural expressions, real environments, editorial photography quality
+- Color palette should be sophisticated and natural - professional color grading like magazine photography
+- High-end photography aesthetic similar to editorial work in professional magazines or documentary photography
 
-Style: Abstract professional illustration or clean photography representing the marketing concept visually without any text elements.";
+Style: Professional editorial photography shot by an experienced photographer, not stock photography. The image should feel authentic, visually compelling, and tell a story naturally without any text elements.";
 
         $response = $this->call_openai_images([
             'model' => $model,
