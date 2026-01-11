@@ -1,0 +1,740 @@
+/**
+ * Kre8iv AI Blogger - Admin Styles
+ */
+
+/* General Wrapper */
+.kaib-wrap {
+    max-width: 1400px;
+}
+
+/* Header */
+.kaib-header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+    color: #fff;
+    padding: 30px;
+    margin: -10px -20px 30px -20px;
+    border-radius: 0 0 8px 8px;
+}
+
+.kaib-header h1 {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.kaib-header h1 .dashicons {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+}
+
+.kaib-tagline {
+    color: rgba(255, 255, 255, 0.8);
+    margin: 8px 0 0 44px;
+    font-size: 14px;
+}
+
+/* Notices */
+.kaib-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 15px 20px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.kaib-notice-warning {
+    background: #fff8e5;
+    border-left: 4px solid #f0b429;
+}
+
+.kaib-notice .dashicons {
+    color: #f0b429;
+    font-size: 24px;
+    margin-top: 2px;
+}
+
+.kaib-notice strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.kaib-notice p {
+    margin: 0;
+}
+
+/* Dashboard Cards */
+.kaib-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.kaib-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.kaib-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.kaib-card-icon {
+    background: #f0f4f8;
+    border-radius: 12px;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.kaib-card-icon .dashicons {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: #2c5282;
+}
+
+.kaib-card-icon.kaib-status-active {
+    background: #c6f6d5;
+}
+
+.kaib-card-icon.kaib-status-active .dashicons {
+    color: #22543d;
+}
+
+.kaib-card-icon.kaib-status-inactive {
+    background: #fed7d7;
+}
+
+.kaib-card-icon.kaib-status-inactive .dashicons {
+    color: #742a2a;
+}
+
+.kaib-card-content h3 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kaib-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1a202c;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.kaib-value.kaib-active {
+    color: #22543d;
+}
+
+.kaib-value.kaib-inactive {
+    color: #c53030;
+}
+
+.kaib-value.kaib-disabled {
+    color: #718096;
+}
+
+.kaib-subvalue {
+    font-size: 13px;
+    color: #718096;
+    margin: 4px 0 0 0;
+}
+
+.kaib-subvalue a {
+    color: #2c5282;
+    text-decoration: none;
+}
+
+.kaib-subvalue a:hover {
+    text-decoration: underline;
+}
+
+/* Sections */
+.kaib-section {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.kaib-section h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a202c;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.kaib-section h2 .dashicons {
+    color: #2c5282;
+}
+
+/* Quick Actions */
+.kaib-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.kaib-actions .button-hero {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    height: auto;
+    line-height: 1.4;
+}
+
+.kaib-actions .button-hero .dashicons {
+    font-size: 20px;
+}
+
+.kaib-status-message {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 6px;
+    display: none;
+}
+
+.kaib-status-message.kaib-loading {
+    display: block;
+    background: #ebf8ff;
+    color: #2c5282;
+}
+
+.kaib-status-message.kaib-success {
+    display: block;
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.kaib-status-message.kaib-error {
+    display: block;
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+/* Tables */
+.kaib-section table.wp-list-table {
+    border: none;
+}
+
+.kaib-section table.wp-list-table thead th {
+    background: #f7fafc;
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+/* Status Badges */
+.kaib-status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.kaib-status-publish {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.kaib-status-draft {
+    background: #feebc8;
+    color: #744210;
+}
+
+.kaib-status-pending {
+    background: #e9d8fd;
+    color: #553c9a;
+}
+
+/* Empty State */
+.kaib-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #718096;
+}
+
+.kaib-empty-state .dashicons {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: #cbd5e0;
+    margin-bottom: 20px;
+}
+
+.kaib-empty-state h2 {
+    border: none;
+    justify-content: center;
+}
+
+.kaib-empty-state p {
+    margin-bottom: 30px;
+}
+
+/* Activity Log */
+.kaib-log {
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 13px;
+    background: #f7fafc;
+    border-radius: 6px;
+    padding: 15px;
+}
+
+.kaib-log-entry {
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    gap: 15px;
+}
+
+.kaib-log-entry:last-child {
+    border-bottom: none;
+}
+
+.kaib-log-time {
+    color: #718096;
+    flex-shrink: 0;
+    width: 150px;
+}
+
+.kaib-log-message {
+    color: #2d3748;
+}
+
+.kaib-muted {
+    color: #a0aec0;
+    font-style: italic;
+}
+
+/* Settings Form */
+.kaib-settings-grid {
+    display: grid;
+    gap: 24px;
+}
+
+.kaib-settings-section {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+}
+
+.kaib-settings-section h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a202c;
+    margin: 0 0 8px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.kaib-settings-section h2 .dashicons {
+    color: #2c5282;
+}
+
+.kaib-section-description {
+    color: #718096;
+    margin: 0 0 20px 0;
+}
+
+.kaib-settings-section .form-table th {
+    width: 200px;
+    padding: 15px 10px 15px 0;
+}
+
+.kaib-settings-section .form-table td {
+    padding: 15px 10px;
+}
+
+.kaib-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #ebf8ff;
+    color: #2c5282;
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+/* Toggle Switch */
+.kaib-toggle {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+}
+
+.kaib-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.kaib-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e0;
+    transition: 0.3s;
+    border-radius: 28px;
+}
+
+.kaib-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.kaib-toggle input:checked + .kaib-toggle-slider {
+    background-color: #48bb78;
+}
+
+.kaib-toggle input:checked + .kaib-toggle-slider:before {
+    transform: translateX(24px);
+}
+
+/* History Page */
+.kaib-history-stats {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+    padding: 20px 30px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.kaib-stat {
+    text-align: center;
+}
+
+.kaib-stat-number {
+    display: block;
+    font-size: 36px;
+    font-weight: 700;
+    color: #2c5282;
+    line-height: 1;
+}
+
+.kaib-stat-label {
+    font-size: 13px;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kaib-history-table .column-thumbnail {
+    width: 80px;
+}
+
+.kaib-thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.kaib-no-image {
+    width: 60px;
+    height: 60px;
+    background: #f7fafc;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kaib-no-image .dashicons {
+    color: #cbd5e0;
+    font-size: 24px;
+}
+
+.kaib-history-table .column-status {
+    width: 100px;
+}
+
+.kaib-history-table .column-date {
+    width: 150px;
+}
+
+.kaib-history-table .column-actions {
+    width: 100px;
+}
+
+.kaib-history-table .column-actions .button {
+    padding: 4px 8px;
+}
+
+.kaib-history-table .column-actions .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    vertical-align: text-bottom;
+}
+
+/* Topics Cloud */
+.kaib-topics-section {
+    margin-top: 30px;
+}
+
+.kaib-topics-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.kaib-topic-tag {
+    background: #edf2f7;
+    color: #4a5568;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.kaib-topic-tag:hover {
+    background: #e2e8f0;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+    .kaib-header {
+        margin: -10px -10px 20px -10px;
+        padding: 20px;
+    }
+    
+    .kaib-cards {
+        grid-template-columns: 1fr;
+    }
+    
+    .kaib-actions {
+        flex-direction: column;
+    }
+    
+    .kaib-actions .button-hero {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .kaib-history-stats {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .kaib-settings-section .form-table th {
+        width: auto;
+        display: block;
+        padding-bottom: 5px;
+    }
+    
+    .kaib-settings-section .form-table td {
+        display: block;
+        padding-top: 0;
+    }
+}
+
+/* Backdate/Backfill Section */
+.kaib-backdate-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 30px;
+}
+
+.kaib-backdate-single,
+.kaib-backdate-bulk {
+    background: #f7fafc;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.kaib-backdate-single h3,
+.kaib-backdate-bulk h3 {
+    margin: 0 0 15px 0;
+    font-size: 16px;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kaib-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.kaib-form-row label {
+    font-weight: 500;
+    color: #4a5568;
+    min-width: 100px;
+}
+
+.kaib-form-row input[type="date"],
+.kaib-form-row input[type="number"] {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.kaib-form-row input[type="number"] {
+    width: 80px;
+}
+
+.kaib-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #fffbeb;
+    color: #92400e;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-top: 15px;
+    border: 1px solid #fcd34d;
+}
+
+.kaib-warning .dashicons {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* Progress Bar */
+.kaib-progress-container {
+    margin-top: 20px;
+    background: #f7fafc;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.kaib-progress-bar {
+    background: #e2e8f0;
+    border-radius: 10px;
+    height: 20px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.kaib-progress-fill {
+    background: linear-gradient(90deg, #4299e1, #667eea);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    width: 0%;
+}
+
+.kaib-progress-text {
+    text-align: center;
+    color: #4a5568;
+    font-size: 14px;
+}
+
+/* Category Checkboxes */
+.kaib-category-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 15px;
+    background: #f7fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.kaib-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 14px;
+}
+
+.kaib-checkbox-label:hover {
+    background: #edf2f7;
+}
+
+.kaib-checkbox-label input[type="checkbox"] {
+    margin: 0;
+}
+
+.kaib-cat-count {
+    color: #a0aec0;
+    font-size: 12px;
+    margin-left: auto;
+}
+
+/* Created posts list in success message */
+.kaib-created-list {
+    margin: 10px 0 0 20px;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.kaib-created-list li {
+    margin-bottom: 5px;
+    font-size: 13px;
+}
+
+/* Section description */
+.kaib-section-description {
+    color: #718096;
+    margin: -10px 0 20px 0;
+    font-size: 14px;
+}
