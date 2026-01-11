@@ -24,6 +24,7 @@ class Kre8iv_AI_Blogger {
     
     private static $instance = null;
     private $openai_api_key;
+    private $openrouter_api_key;
     
     public static function get_instance() {
         if (null === self::$instance) {
@@ -34,6 +35,7 @@ class Kre8iv_AI_Blogger {
     
     private function __construct() {
         $this->openai_api_key = get_option('kaib_openai_api_key', '');
+        $this->openrouter_api_key = get_option('kaib_openrouter_api_key', '');
         
         // Initialize hooks
         add_action('admin_menu', [$this, 'add_admin_menu']);
@@ -129,6 +131,9 @@ class Kre8iv_AI_Blogger {
         register_setting('kaib_settings', 'kaib_openai_api_key', [
             'sanitize_callback' => 'sanitize_text_field'
         ]);
+        register_setting('kaib_settings', 'kaib_openrouter_api_key', [
+            'sanitize_callback' => 'sanitize_text_field'
+        ]);
         
         // Content Settings
         register_setting('kaib_settings', 'kaib_post_status', [
@@ -157,10 +162,7 @@ class Kre8iv_AI_Blogger {
             'default' => 'gpt-4o'
         ]);
         register_setting('kaib_settings', 'kaib_image_model', [
-            'default' => 'dall-e-3'
-        ]);
-        register_setting('kaib_settings', 'kaib_image_style', [
-            'default' => 'vivid'
+            'default' => 'black-forest-labs/flux'
         ]);
         register_setting('kaib_settings', 'kaib_business_name', [
             'default' => ''
@@ -662,35 +664,35 @@ Generate JSON with:
     }
     
     private function generate_featured_image($topic, $image_prompt) {
-        $style = get_option('kaib_image_style', 'vivid');
-        $model = get_option('kaib_image_model', 'dall-e-3');
+        if (empty($this->openrouter_api_key)) {
+            $this->log('OpenRouter API key not configured for image generation');
+            return false;
+        }
         
-        $full_prompt = "Create a professional photographer-quality featured image for a marketing blog post about: {$image_prompt}
+        $model = get_option('kaib_image_model', 'black-forest-labs/flux');
+        
+        // Realistic prompt for AI-generated images - professional quality without contradictory "real photography" requirements
+        $full_prompt = "Create a high-quality, professional AI-generated featured image for a marketing blog post about: {$image_prompt}
 
 CRITICAL REQUIREMENTS:
 - ABSOLUTELY NO TEXT, WORDS, LETTERS, NUMBERS, OR TYPOGRAPHY OF ANY KIND IN THE IMAGE
 - NO logos, watermarks, labels, captions, titles, or any written content
-- NO stock photo aesthetics - avoid generic, overly posed, staged, or clichéd imagery
-- Professional editorial/documentary photography style - authentic, candid, and natural
-- Shot with professional camera equipment - sharp focus, proper depth of field, high resolution
-- Natural lighting with professional color grading - avoid harsh studio lighting or artificial setups
-- Editorial composition - rule of thirds, leading lines, natural framing, not centered corporate stock style
-- Real-world environments and authentic moments - avoid sterile office backgrounds or fake scenarios
-- Professional photographer's eye - thoughtful composition, interesting angles, visual storytelling
-- Avoid: overly perfect people, fake smiles, staged handshakes, generic business settings, stock photo clichés
-- Instead: authentic moments, natural expressions, real environments, editorial photography quality
-- Color palette should be sophisticated and natural - professional color grading like magazine photography
-- High-end photography aesthetic similar to editorial work in professional magazines or documentary photography
+- NO generic stock photo aesthetics - avoid overly posed, staged, or clichéd corporate imagery
+- Professional, polished AI-generated visual style with sophisticated composition
+- High-quality rendering with attention to detail, proper lighting, and visual balance
+- Editorial-style composition - thoughtful framing, interesting angles, visual storytelling
+- Sophisticated color palette with professional color grading - avoid overly saturated or artificial colors
+- Modern, visually engaging aesthetic suitable for professional business content
+- Avoid: generic business clichés, fake smiles, staged corporate scenarios, sterile backgrounds
+- Instead: visually compelling, well-composed imagery that represents the marketing concept effectively
+- The image should be visually striking and professional while being clearly AI-generated art, not attempting to mimic real photography
 
-Style: Professional editorial photography shot by an experienced photographer, not stock photography. The image should feel authentic, visually compelling, and tell a story naturally without any text elements.";
+Style: High-quality AI-generated professional illustration or visual art that avoids stock photo clichés. The image should be visually compelling, well-composed, and suitable for editorial use without any text elements.";
 
-        $response = $this->call_openai_images([
+        $response = $this->call_openrouter_images([
             'model' => $model,
             'prompt' => $full_prompt,
-            'n' => 1,
-            'size' => '1792x1024',
-            'quality' => 'standard',
-            'style' => $style
+            'topic' => $topic
         ]);
         
         if ($response && isset($response['data'][0]['url'])) {
@@ -745,6 +747,55 @@ Style: Professional editorial photography shot by an experienced photographer, n
         return $this->call_openai_api('https://api.openai.com/v1/images/generations', $data);
     }
     
+    private function call_openrouter_images($data) {
+        $model = $data['model'] ?? 'black-forest-labs/flux';
+        $prompt = $data['prompt'] ?? '';
+        $topic = $data['topic'] ?? 'Generated Image';
+        
+        // OpenRouter image generation endpoint
+        // Different models may use different endpoints, but most use /v1/images/generations
+        $request_data = [
+            'model' => $model,
+            'prompt' => $prompt,
+            'n' => 1,
+            'size' => '1024x1024'
+        ];
+        
+        $response = $this->call_openrouter_api('https://openrouter.ai/api/v1/images/generations', $request_data);
+        
+        if ($response && isset($response['data'][0]['url'])) {
+            return $response;
+        }
+        
+        // Some models might return base64 images instead of URLs
+        if ($response && isset($response['data'][0]['b64_json'])) {
+            // Convert base64 to temporary file and return URL
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            
+            $image_data = base64_decode($response['data'][0]['b64_json']);
+            $tmp_file = wp_tempnam('kaib-image-');
+            file_put_contents($tmp_file, $image_data);
+            
+            // Upload to media library directly
+            $file_array = [
+                'name' => sanitize_file_name($topic) . '-' . time() . '.png',
+                'tmp_name' => $tmp_file
+            ];
+            
+            $attachment_id = media_handle_sideload($file_array, 0, $topic);
+            @unlink($tmp_file);
+            
+            if (!is_wp_error($attachment_id)) {
+                $image_url = wp_get_attachment_url($attachment_id);
+                return ['data' => [['url' => $image_url]]];
+            }
+        }
+        
+        return false;
+    }
+    
     private function call_openai_api($endpoint, $data) {
         $response = wp_remote_post($endpoint, [
             'timeout' => 120,
@@ -765,6 +816,34 @@ Style: Professional editorial photography shot by an experienced photographer, n
         
         if (isset($decoded['error'])) {
             $this->log('OpenAI Error: ' . $decoded['error']['message']);
+            return false;
+        }
+        
+        return $decoded;
+    }
+    
+    private function call_openrouter_api($endpoint, $data) {
+        $response = wp_remote_post($endpoint, [
+            'timeout' => 120,
+            'headers' => [
+                'Authorization' => 'Bearer ' . $this->openrouter_api_key,
+                'Content-Type' => 'application/json',
+                'HTTP-Referer' => home_url(),
+                'X-Title' => 'Kre8iv AI Blogger'
+            ],
+            'body' => json_encode($data)
+        ]);
+        
+        if (is_wp_error($response)) {
+            $this->log('OpenRouter API Error: ' . $response->get_error_message());
+            return false;
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $decoded = json_decode($body, true);
+        
+        if (isset($decoded['error'])) {
+            $this->log('OpenRouter Error: ' . $decoded['error']['message']);
             return false;
         }
         

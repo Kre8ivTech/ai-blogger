@@ -34,6 +34,25 @@ if (!defined('ABSPATH')) exit;
                             <button type="button" class="button" id="kaib-toggle-key">Show</button>
                             <p class="description">
                                 Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Dashboard</a>
+                                <br>Used for text content generation (GPT models)
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="kaib_openrouter_api_key">OpenRouter API Key</label>
+                        </th>
+                        <td>
+                            <input type="password" 
+                                   name="kaib_openrouter_api_key" 
+                                   id="kaib_openrouter_api_key" 
+                                   value="<?php echo esc_attr(get_option('kaib_openrouter_api_key', '')); ?>" 
+                                   class="regular-text"
+                                   autocomplete="new-password">
+                            <button type="button" class="button" id="kaib-toggle-openrouter-key">Show</button>
+                            <p class="description">
+                                Get your API key from <a href="https://openrouter.ai/keys" target="_blank">OpenRouter Dashboard</a>
+                                <br>Required for image generation with Gemini models
                             </p>
                         </td>
                     </tr>
@@ -56,21 +75,12 @@ if (!defined('ABSPATH')) exit;
                         </th>
                         <td>
                             <select name="kaib_image_model" id="kaib_image_model">
-                                <option value="dall-e-3" <?php selected(get_option('kaib_image_model', 'dall-e-3'), 'dall-e-3'); ?>>DALL-E 3 (Best Quality)</option>
-                                <option value="dall-e-2" <?php selected(get_option('kaib_image_model'), 'dall-e-2'); ?>>DALL-E 2 (Faster/Cheaper)</option>
+                                <option value="google/gemini-2.0-flash-exp:free" <?php selected(get_option('kaib_image_model', 'google/gemini-2.0-flash-exp:free'), 'google/gemini-2.0-flash-exp:free'); ?>>Gemini 2.0 Flash (Free via OpenRouter)</option>
+                                <option value="google/gemini-flash-1.5" <?php selected(get_option('kaib_image_model'), 'google/gemini-flash-1.5'); ?>>Gemini Flash 1.5</option>
+                                <option value="stability-ai/stable-diffusion-xl" <?php selected(get_option('kaib_image_model'), 'stability-ai/stable-diffusion-xl'); ?>>Stable Diffusion XL</option>
+                                <option value="black-forest-labs/flux" <?php selected(get_option('kaib_image_model'), 'black-forest-labs/flux'); ?>>Flux (High Quality)</option>
                             </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">
-                            <label for="kaib_image_style">Image Style</label>
-                        </th>
-                        <td>
-                            <select name="kaib_image_style" id="kaib_image_style">
-                                <option value="vivid" <?php selected(get_option('kaib_image_style', 'vivid'), 'vivid'); ?>>Vivid (Dramatic)</option>
-                                <option value="natural" <?php selected(get_option('kaib_image_style'), 'natural'); ?>>Natural (Realistic)</option>
-                            </select>
-                            <p class="description">DALL-E 3 only</p>
+                            <p class="description">Image generation models via OpenRouter. Requires OpenRouter API key.</p>
                         </td>
                     </tr>
                 </table>
@@ -290,6 +300,19 @@ jQuery(document).ready(function($) {
     // Toggle API key visibility
     $('#kaib-toggle-key').on('click', function() {
         var input = $('#kaib_openai_api_key');
+        var btn = $(this);
+        if (input.attr('type') === 'password') {
+            input.attr('type', 'text');
+            btn.text('Hide');
+        } else {
+            input.attr('type', 'password');
+            btn.text('Show');
+        }
+    });
+
+    // Toggle OpenRouter API key visibility
+    $('#kaib-toggle-openrouter-key').on('click', function() {
+        var input = $('#kaib_openrouter_api_key');
         var btn = $(this);
         if (input.attr('type') === 'password') {
             input.attr('type', 'text');
